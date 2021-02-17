@@ -1,0 +1,15 @@
+body{
+    background-color: rgb(41, 41, 41);
+    color: rgb(255, 255, 255);
+}
+
+.information{
+    display: flex;     
+    justify-content: center;
+    align-content: center;   
+}
+.playground-wrapper{
+    display: flex;
+    justify-content: center;
+    align-content: center;
+}
