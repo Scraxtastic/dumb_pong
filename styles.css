@@ -7,6 +7,7 @@ body{
     display: flex;     
     justify-content: center;
     align-content: center;   
+    margin-bottom: 300px;
 }
 .playground-wrapper{
     display: flex;
