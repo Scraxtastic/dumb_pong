@@ -44,6 +44,10 @@ const createGame = ({
   shallClear = true,
   player1Color = "#00ff00",
   player2Color = "#0000ff",
+  autoRespawn = true,
+  bot,
+  id = Math.random(),
+  alwaysRender = true,
 }) => {
   const speedFactor = updateDelay / 1000;
   const colors = { frame: "rgb(230,230,230)", ball: "#ff0000" };
@@ -51,9 +55,14 @@ const createGame = ({
   const canvasClientRect = canvas.getBoundingClientRect();
   const screenWidth = canvasClientRect.width;
   const screenHeight = canvasClientRect.height;
+  const points = {
+    player1: 0,
+    player2: 0,
+  };
   /**
-   * GameObjects
+   * GameObjects and vars
    */
+  let goalHit = false;
   const ballRadius = 5;
   const ballStartPosition = {
     x: screenWidth / 2 - ballRadius,
@@ -146,24 +155,23 @@ const createGame = ({
   /**
    * logic functions
    */
-  const run = () => {
-    if (!state.running || window.gamePaused) return;
-    update();
-    requestAnimationFrame(render);
-    state.run++;
-  };
+
   const update = () => {
-    ball.x += ball.xspeed * speedFactor;
-    ball.y += ball.yspeed * speedFactor;
-    if (player1Playing) updatePlayer1();
-    else {
-      updateBot({ player: player1, botProfile: botProfile1 });
+    if (!goalHit) {
+      ball.x += ball.xspeed * speedFactor;
+      ball.y += ball.yspeed * speedFactor;
+      if (player1Playing) updatePlayer1();
+      else {
+        updateBot({ player: player1, botProfile: botProfile1 });
+      }
+      if (player2Playing) updatePlayer2();
+      else {
+        updateBot({ player: player2, botProfile: botProfile2 });
+      }
+      checkCollisions();
+    } else {
+      if (autoRespawn) respawnIfGoaled();
     }
-    if (player2Playing) updatePlayer2();
-    else {
-      updateBot({ player: player2, botProfile: botProfile2 });
-    }
-    checkCollisions();
   };
 
   const updateBot = ({ player, botProfile }) => {
@@ -199,6 +207,15 @@ const createGame = ({
           maxPlayerMovement,
         });
         break;
+      case "bobe":
+        updateBobe({
+          player,
+          ballcenterY,
+          playerCenterY,
+          centerDif,
+          maxPlayerMovement,
+        });
+        break;
     }
   };
 
@@ -221,6 +238,9 @@ const createGame = ({
   };
 
   const resetPositions = (player1Point) => {
+    goalHit = true;
+    if (player1Point) points.player1 += 1;
+    else points.player2 += 1;
     ball.x = ballStartPosition.x;
     ball.y = ballStartPosition.y;
     ball.xspeed = player1Point ? -ballStartSpeed.xspeed : ballStartSpeed.xspeed;
@@ -266,7 +286,6 @@ const createGame = ({
     const ballDistance = ballUpwards
       ? Math.sqrt(Math.pow(ballcenterY - player.y + player.height, 2))
       : Math.sqrt(Math.pow(ballcenterY - player.y, 2));
-    console.log("BALLDIST", ballDistance, maxPlayerMovement);
     if (ballUpwards && ballcenterY < player.y + player.height) {
       if (ballDistance > maxPlayerMovement) {
         player.y -= maxPlayerMovement;
@@ -304,6 +323,18 @@ const createGame = ({
       } else {
         player.y += centerDif;
       }
+    }
+  };
+
+  const updateBobe = ({
+    player,
+    ballcenterY,
+    playerCenterY,
+    centerDif,
+    maxPlayerMovement,
+  }) => {
+    if(bot && state.run%5 == 0){
+      const botMove = bot.move();
     }
   };
 
@@ -389,11 +420,31 @@ const createGame = ({
     window.gamePaused = false;
   };
 
+  const respawnIfGoaled = () => {
+    goalHit = false;
+  };
+
+  const isGoaled = () => goalHit;
+
+  const setBot = (newBot)=> {
+    bot = newBot;
+  }
+
+  const run = () => {
+    if (!state.running || window.gamePaused) return;
+    update();
+    if (!goalHit || alwaysRender) requestAnimationFrame(render);
+    state.run++;
+  };
+
   return {
     start,
     stop,
     pauseAllGames,
     resumeAllGames,
     run,
+    respawnIfGoaled,
+    isGoaled,
+    setBot,
   };
 };
